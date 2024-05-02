@@ -6,7 +6,6 @@ const snapDurationLabel = document.querySelector(".snap-duration-label") as HTML
 
 const scrollInstance = new CustomSnap({
 	container: document.querySelector("#container") as HTMLElement,
-	snapDuration: 3000,
 });
 
 scrollInstance.register();
