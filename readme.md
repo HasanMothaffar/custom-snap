@@ -1,18 +1,17 @@
-# Custom Snap - Snap and normal scrolling at once
+# Custom Snap - Minimal fullpage.js clone
 
 [![npm version](https://badge.fury.io/js/custom-snap.svg)](https://badge.fury.io/js/custom-snap)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A TypeScript module that lets you have both scroll snapping and native scrolling functionality in different sections of your website.
+A minimal (free) TypeScript clone of fullpage.js that allows both scroll snapping and native scrolling in different sections of your website.
 
-**Demo link**: https://syrian-open-source.github.io/custom-snap/
+**Demo link**: https://hasanmothaffar.github.io/custom-snap/
 
 ## Features
 
 -   Lightweight and simple (0 dependencies)
 -   Works with both fullpage sections (100vh) and variable height sections.
 -   You can customize the snap scrolling's duration and easing presets
--   You can have as many normal scroll sections as you want.
 
 ## Installation
 
@@ -26,12 +25,12 @@ npm install custom-snap
 
 ```html
 <div id="container">
-	<div id="a" class="section"></div>
-	<div id="b" class="section"></div>
-	<div id="c" class="section long-content"></div>
-	<div id="d" class="section"></div>
-	<div id="e" class="section long-content"></div>
-	<div id="f" class="section"></div>
+	<div class="section"></div>
+	<div class="section"></div>
+	<div class="section--long"></div>
+	<div class="section"></div>
+	<div class="section--long"></div>
+	<div class="section"></div>
 </div>
 ```
 
@@ -43,7 +42,7 @@ npm install custom-snap
 	height: 100vh;
 }
 
-.long-content {
+.section--long {
 	height: 200vh;
 }
 ```
@@ -54,36 +53,22 @@ npm install custom-snap
 import { CustomSnap } from "custom-snap";
 
 const scrollInstance = new CustomSnap({
-	containerID: "container",
-	normalScrollElementIDs: ["c", "e"],
-	afterSnap: (id, section) => {},
-	beforeSnap: (id, section) => {},
+	container: document.querySelector("#container"),
 });
 
 scrollInstance.register();
 ```
 
-In this example, sections with ids `c` and `d` will have normal scrolling, while all other children of `#container` will have snap scrolling.
-
-**Important!**: You have to specify an ID on every child of the container.
-
-### Indexing
-
-Section `a` has index 0, `b` has index 1, and so on... Section `f` has index 5.
-
-This is useful in case you want to scroll programmatically using the `scrollToSectionByIndex` method.
-
 ## Options
 
-| Key                    | Description                                                         | Type              | Default value   |
-| ---------------------- | ------------------------------------------------------------------- | ----------------- | --------------- |
-| containerID            | ID of the wrapping container                                        | `string`          | none            |
-| hideScrollbar          | Whether to hide the browser's scrollbar or not                      | `boolean`         | `false`         |
-| normalScrollElementIDs | IDs of the sections to which scroll snapping doesn't apply          | `string[]`        | `[]`            |
-| snapDuration           | The duration that scroll snapping takes in milliseconds             | `number`          | `1000` (ms)     |
-| easingPreset           | The transition timing function that gets applied to snapping        | `EasingPreset`    | `easeInOutQuad` |
-| afterSnap              | A function that gets called after snap scrolling is performed       | `OnEventCallback` | `() => {}`      |
-| beforeSnap             | A function that gets called just before snap scrolling is performed | `OnEventCallback` | `() => {}`      |
+| Key           | Description                                                      | Type            | Default value   |
+| ------------- | ---------------------------------------------------------------- | --------------- | --------------- |
+| container     | Scroll container                                                 | `HTMLElement`   | none            |
+| hideScrollbar | Whether to hide the browser's scrollbar or not                   | `boolean`       | `false`         |
+| snapDuration  | The duration that scroll snapping takes in milliseconds          | `number`        | `1000` (ms)     |
+| easing        | The transition timing function that gets applied to snapping     | `EasingPreset`  | `easeInOutQuad` |
+| afterSnap     | Callback that's executed after snap scrolling is performed       | `EventCallback` | `() => {}`      |
+| beforeSnap    | Callback that's executed just before snap scrolling is performed | `EventCallback` | `() => {}`      |
 
 ## Instance methods
 
@@ -91,7 +76,7 @@ This is useful in case you want to scroll programmatically using the `scrollToSe
 /**
  * Sets a new easing preset for snap scrolling
  */
-setEasingPreset(easingPreset: EasingPreset): void
+setEasing(easing: EasingPreset): void
 
 /**
  * Sets a new duration for snap scrolling
@@ -114,20 +99,21 @@ hideScrollbar(): void
 showScrollbar(): void
 
 /**
- * Scrolls to a specific section over a period of time.
+ * Scroll to the container's nth child over a period `duration` of time using index:
+ *
+ * first child => index = 0.
+ * second child => index = 1.
+ * Nth child => index = n - 1
  */
-scrollToSectionByIndex(index: number, duration = 1000): void
+scrollToSectionByIndex(index: number, duration: number): void
 
 /**
- * Registers the snap scroll event listener.
- * Note that without invoking this function, all scrolling
- * would be considered normal.
+ * Enable scroll instance.
  */
 register(): void
 
 /**
- * Removes the currently bound scroll event listener.
- * After unregistering, all scrolling would be considered normal.
+ * Disable scroll instance.
  */
 unregister(): void
 ```
@@ -138,7 +124,7 @@ unregister(): void
 type EasingPreset = "easeInOutQuad" | "easeInCubic" | "inOutQuintic";
 type ScrollDirection = "top-to-bottom" | "bottom-to-top" | "";
 
-interface OnEventCallback {
+interface EventCallback {
 	(id?: number, section?: HTMLElement | null): void;
 }
 ```
@@ -154,18 +140,3 @@ interface OnEventCallback {
 
 -   [Linkedin Account](https://www.linkedin.com/in/hasan-mothaffar-0a55301b0/)
 -   [GitHub Account](https://github.com/HasanMothaffar)
--   [All contributors](https://github.com/Syrian-Open-Source/custom-snap/graphs/contributors)
-
-## About Syrian Open Source
-
-The Syrian Open Source platform is the first platform on GitHub dedicated to bringing Syrian developers from different cultures and experiences together, to work on projects in different languages, tasks, and versions, and works to attract Syrian developers to contribute more under one platform to open source software, work on it, and issue it with high quality and advanced engineering features, which It stimulates the dissemination of the open-source concept in the Syrian software community, and also contributes to raising the efficiency of developers by working on distributed systems and teams.
-
-## Changes
-
--   Update ESLint package + config
--   Update prettier config
--   Use vite instead of webpack
--   Use PNPM instead of NPM
-
--   Refactor core logic
--   Remove Utils file + NormalScrollElementIds concept
