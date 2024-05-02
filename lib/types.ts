@@ -11,7 +11,7 @@ export interface CustomSnapProps {
 	snapDuration?: number;
 
 	/** Transition timing function that gets applied to snapping */
-	easingPreset?: EasingPreset;
+	easing?: EasingPreset;
 
 	/** Callback to execute after snap scrolling is performed */
 	afterSnap?: EventCallback;
