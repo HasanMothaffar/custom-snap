@@ -1,73 +1,52 @@
 import { EASINGS } from "./easings";
-import {
-	CustomSnapProps,
-	EasingPreset,
-	OnEventCallback,
-	ScrollDirection,
-} from "./types";
-import { ScrollUtils } from "./utils";
+import { CustomSnapProps, EasingPreset, EventCallback, ScrollDirection } from "./types";
 
 export class CustomSnap {
-	private container;
+	private sections!: HTMLElement[];
+
 	private isRegistered = false;
-	private isAnimating = false;
+	private scrollLock = false;
 	private lastScrollPosition = 0;
 	private currentSectionIndex = 0;
 
-	private snapDuration;
+	private snapDuration = 1000;
 	private easingPreset!: EasingPreset;
 	private scrollDirection: ScrollDirection = "";
 
-	private afterSnap: OnEventCallback;
-	private beforeSnap: OnEventCallback;
+	private afterSnap!: EventCallback;
+	private beforeSnap!: EventCallback;
 
-	private scrollUtils: ScrollUtils;
+	constructor(options: CustomSnapProps) {
+		this.setOptions(options);
+		this.onScroll = this.onScroll.bind(this);
+	}
 
-	constructor(customSnapProps: CustomSnapProps) {
-		if (customSnapProps == undefined) {
-			throw new Error(
-				"custom-snap: Please provide a valid options object."
-			);
-		}
-		const {
-			containerID,
-			hideScrollbar = false,
-			normalScrollElementIDs = [],
-			snapDuration = 1000,
-			easingPreset = "easeInOutQuad",
-			afterSnap = () => {},
-			beforeSnap = () => {},
-		} = customSnapProps;
-
-		this.container = document.getElementById(containerID) as HTMLElement;
+	public setOptions({
+		container,
+		hideScrollbar = false,
+		snapDuration = 1000,
+		easingPreset = "easeInOutQuad",
+		afterSnap = () => {},
+		beforeSnap = () => {},
+	}: CustomSnapProps) {
 		this.snapDuration = snapDuration;
-		this.setEasingPreset(easingPreset);
-
-		this.scrollUtils = new ScrollUtils(
-			this.container,
-			normalScrollElementIDs
-		);
+		this.easingPreset = easingPreset;
 		this.afterSnap = afterSnap;
 		this.beforeSnap = beforeSnap;
-		this.onScroll = this.onScroll.bind(this);
 
-		if (hideScrollbar) {
-			this.hideScrollbar();
-		}
+		this.sections = Array.from(container.children).map((child) => child as HTMLElement);
+
+		if (hideScrollbar) this.hideScrollbar();
 	}
 
 	private calculateScrollDirection(): void {
 		/**
-		 * Why `margin`? Because sometimes the values of the last
-		 * scroll position and current one might be too close,
-		 * and so even if the user did not scroll, the library
-		 * would trigger a snap between sections.
+		 * Why `margin`? Because sometimes the values of the last scroll position and current one might be too close,
+		 * and so even if the user did not scroll, the library would trigger a snap between sections.
 		 *
-		 * Unless the gap between the two scroll positions is at
-		 * least equal to `margin`, I don't want to trigger snapping.
+		 * Unless the gap between the two scroll positions is at least equal to `margin`, I don't want to trigger snapping.
 		 *
-		 * Note that `margin` is just an arbitrary value that
-		 * should be smaller than 5
+		 * Note that `margin` is just an arbitrary value that should be smaller than 5
 		 */
 		const margin = 3;
 
@@ -82,88 +61,98 @@ export class CustomSnap {
 	}
 
 	private onScroll(): void {
-		if (this.isAnimating) return;
+		if (this.scrollLock) return;
+
 		this.calculateScrollDirection();
 		this.lastScrollPosition = window.scrollY;
 
-		// Normal scrolling
-		if (this.scrollUtils.isSectionNormal(this.currentSectionIndex)) {
-			const normalSection = this.scrollUtils.getSectionByIndex(
-				this.currentSectionIndex
-			) as HTMLElement;
+		const currentSection = this.sections[this.currentSectionIndex];
+		if (!currentSection) return;
 
-			const isWindowTouchingWithNextSection =
-				window.scrollY +
-					window.innerHeight -
-					(normalSection.offsetTop + normalSection.offsetHeight) >
-				2;
+		const isWindowTouchingWithNextSection =
+			window.scrollY + window.innerHeight > currentSection.offsetTop + currentSection.offsetHeight - 2;
 
-			const isWindowIntersectingWithPreviousSection =
-				window.scrollY - normalSection.offsetTop < -2;
+		const isWindowIntersectingWithPreviousSection = window.scrollY - currentSection.offsetTop < -2;
 
-			if (
-				isWindowTouchingWithNextSection &&
-				this.scrollDirection == "top-to-bottom" &&
-				this.scrollUtils.canScrollToBottom(this.currentSectionIndex)
-			) {
-				this.scrollToSectionByIndex(
-					this.currentSectionIndex + 1,
-					this.snapDuration
-				);
-			} else if (
-				isWindowIntersectingWithPreviousSection &&
-				this.scrollDirection == "bottom-to-top" &&
-				this.scrollUtils.canScrollToTop(this.currentSectionIndex)
-			) {
-				this.scrollToSectionByIndex(
-					this.currentSectionIndex - 1,
-					this.snapDuration
-				);
-			}
-			return;
-		}
-
-		// Snap scrolling
 		if (
+			isWindowTouchingWithNextSection &&
 			this.scrollDirection == "top-to-bottom" &&
-			this.scrollUtils.canScrollToBottom(this.currentSectionIndex)
+			this.currentSectionIndex < this.sections.length - 1
 		) {
-			this.scrollToSectionByIndex(
-				this.currentSectionIndex + 1,
-				this.snapDuration
-			);
+			this.scrollToSectionByIndex(this.currentSectionIndex + 1, this.snapDuration);
 		} else if (
+			isWindowIntersectingWithPreviousSection &&
 			this.scrollDirection == "bottom-to-top" &&
-			this.scrollUtils.canScrollToTop(this.currentSectionIndex)
+			this.currentSectionIndex >= 1
 		) {
-			this.scrollToSectionByIndex(
-				this.currentSectionIndex - 1,
-				this.snapDuration
-			);
+			this.scrollToSectionByIndex(this.currentSectionIndex - 1, this.snapDuration);
 		}
+		return;
 	}
 
-	/**
-	 * Sets a new easing preset for snap scrolling
-	 */
-	public setEasingPreset(easingPreset: EasingPreset): void {
-		// https://eslint.org/docs/rules/no-prototype-builtins
-		if (!Object.prototype.hasOwnProperty.call(EASINGS, easingPreset)) {
-			console.error(
-				`Custom Snap: Easing preset ${easingPreset} is invalid. Falling back to the default preset.`
-			);
+	private scrollTo(to: number, duration = 1000, easing: EasingPreset): Promise<void> {
+		this.disableScroll();
 
-			this.easingPreset = "easeInOutQuad";
-		} else {
-			this.easingPreset = easingPreset;
-		}
+		const startingPosition = window.scrollY;
+		const destinationPosition = to - startingPosition;
+
+		const startTime = performance.now();
+
+		return new Promise((resolve) => {
+			const animateScroll = (timestamp: DOMHighResTimeStamp) => {
+				const elapsedTime = timestamp - startTime;
+				const animationProgress = EASINGS[easing](elapsedTime, startingPosition, destinationPosition, duration);
+
+				document.documentElement.scrollTop = animationProgress;
+				document.body.scrollTop = animationProgress;
+
+				// Continue animation loop
+				if (elapsedTime < duration) {
+					return requestAnimationFrame(animateScroll);
+				}
+
+				/**
+				 * Sometimes, window.scrollY is not exactly equal to the value
+				 * of the `to` parameter -- there are off by 1 pixel errors that cause
+				 * infinite bouncing between sections.
+				 *
+				 * I guess it's caused by the easing functions or the
+				 * `elapsedTime < duration` branch.
+				 *
+				 * It's important for the window.scrollY to be equal to `to` in
+				 * order to prevent errors in determining the scrollDirection
+				 *
+				 */
+				if (window.scrollY < to) {
+					window.scrollBy(0, to - window.scrollY);
+				} else if (window.scrollY > to) {
+					window.scrollBy(0, -1 * (window.scrollY - to));
+				}
+
+				// Animation is done, and window.scrollY should be equal to `to`
+				resolve(undefined);
+				this.enableScroll();
+			};
+
+			requestAnimationFrame(animateScroll);
+		});
 	}
 
-	/**
-	 * Sets a new duration for snap scrolling
-	 */
-	public setSnapDuration(duration = 1000): void {
-		this.snapDuration = duration;
+	private preventDefault(e: Event) {
+		e.preventDefault();
+	}
+
+	private disableScroll() {
+		this.scrollLock = true;
+		window.addEventListener("wheel", this.preventDefault, { passive: false });
+		window.addEventListener("touchstart", this.preventDefault, { passive: false });
+	}
+
+	private enableScroll() {
+		this.scrollLock = false;
+		window.removeEventListener("wheel", this.preventDefault);
+		window.removeEventListener("touchstart", this.preventDefault);
+		return (document.onkeydown = null);
 	}
 
 	/**
@@ -177,55 +166,45 @@ export class CustomSnap {
 	 * Hides the browser's scrollbar using CSS
 	 */
 	public hideScrollbar(): void {
-		this.scrollUtils.hideScrollbar();
+		document.documentElement.classList.add("custom-snap--no-scrollbar");
+		document.body.classList.add("custom-snap--no-scrollbar");
 	}
 
 	/**
 	 * Shows the browser's scrollbar
 	 */
 	public showScrollbar(): void {
-		this.scrollUtils.showScrollbar();
+		document.documentElement.classList.remove("custom-snap--no-scrollbar");
+		document.body.classList.remove("custom-snap--no-scrollbar");
 	}
 
 	/**
 	 * Scrolls to a specific section over a period of time.
 	 */
-	public scrollToSectionByIndex(index: number, duration = 1000): void {
-		this.beforeSnap(
-			this.currentSectionIndex,
-			this.scrollUtils.getSectionByIndex(this.currentSectionIndex)
-		);
+	public async scrollToSectionByIndex(index: number, duration = 1000): Promise<void> {
+		const section = this.sections[index];
+		if (!section) return;
+
+		this.beforeSnap(this.currentSectionIndex, this.sections[this.currentSectionIndex]);
 
 		this.currentSectionIndex = index;
-		const section = this.scrollUtils.getSectionByIndex(
-			index
-		) as HTMLElement;
-		const top = section.offsetTop;
 
-		this.lastScrollPosition = top;
+		const destination =
+			this.scrollDirection == "top-to-bottom" ? section.offsetTop : window.scrollY - window.innerHeight;
+		this.lastScrollPosition = destination;
 
-		this.isAnimating = true;
-		this.scrollUtils.disableScroll();
-		this.scrollUtils.scrollTo(top, duration, this.easingPreset).then(() => {
-			this.isAnimating = false;
-			this.scrollUtils.enableScroll();
-			this.afterSnap(
-				this.currentSectionIndex,
-				this.scrollUtils.getSectionByIndex(this.currentSectionIndex)
-			);
-		});
+		await this.scrollTo(destination, duration, this.easingPreset);
+		this.afterSnap(this.currentSectionIndex, this.sections[this.currentSectionIndex]);
 	}
 
 	/**
-	 * Registers the snap scroll event listener.
-	 * Note that without invoking this function, all scrolling
+	 * Registers the snap scroll event listener. Note that without invoking this function, all scrolling
 	 * would be considered normal.
 	 */
 	public register(): void {
+		console.log("called");
 		if (this.isRegistered) {
-			throw new Error(
-				"custom-snap: Scroll event listener is already registered."
-			);
+			throw new Error("custom-snap: Scroll event listener is already registered.");
 		}
 
 		this.isRegistered = true;
@@ -239,9 +218,7 @@ export class CustomSnap {
 	 */
 	public unregister(): void {
 		if (!this.isRegistered) {
-			throw new Error(
-				"custom-snap: Trying to unregister an event listener that is already unregistered."
-			);
+			throw new Error("custom-snap: Trying to unregister an event listener that is already unregistered.");
 		}
 		this.isRegistered = false;
 		window.removeEventListener("scroll", this.onScroll);

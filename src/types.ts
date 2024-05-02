@@ -1,29 +1,26 @@
 export type EasingPreset = "easeInOutQuad" | "easeInCubic" | "inOutQuintic";
 
 export interface CustomSnapProps {
-	/** ID of the wrapping container */
-	containerID: string;
+	/** Scroll container */
+	container: HTMLElement;
 
 	/** Whether to hide the browser's scrollbar or not */
-	hideScrollbar: boolean;
+	hideScrollbar?: boolean;
 
-	/** IDs of the sections to which scroll snapping doesn't apply */
-	normalScrollElementIDs: string[];
+	/** Duration that scroll snapping takes in milliseconds */
+	snapDuration?: number;
 
-	/** The duration that scroll snapping takes in milliseconds */
-	snapDuration: number;
+	/** Transition timing function that gets applied to snapping */
+	easingPreset?: EasingPreset;
 
-	/** The transition timing function that gets applied to snapping */
-	easingPreset: EasingPreset;
+	/** Callback to execute after snap scrolling is performed */
+	afterSnap?: EventCallback;
 
-	/** A function that gets called after snap scrolling is performed */
-	afterSnap: OnEventCallback;
-
-	/** A function that gets called just before snap scrolling is performed */
-	beforeSnap: OnEventCallback;
+	/** Callback to execute just before snap scrolling is performed */
+	beforeSnap?: EventCallback;
 }
 
-export interface OnEventCallback {
+export interface EventCallback {
 	(id?: number, section?: HTMLElement | null): void;
 }
 

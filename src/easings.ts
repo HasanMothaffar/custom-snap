@@ -1,4 +1,6 @@
-export const EASINGS = {
+import { EasingPreset } from "./types";
+
+export const EASINGS: Record<EasingPreset, (a: number, b: number, c: number, d: number) => number> = {
 	easeInOutQuad(t: number, b: number, c: number, d: number): number {
 		t /= d / 2;
 		if (t < 1) {
