@@ -6,15 +6,15 @@
 	"files": [
 		"dist"
 	],
-	"module": "dist/custom-snap.js",
 	"exports": {
 		".": {
 			"import": "./dist/custom-snap.js"
 		}
 	},
 	"scripts": {
-		"dev": "vite",
-		"build": "tsc && vite build",
+		"dev": "vite --config vite.config.web.js",
+		"build:web": "tsc && vite build --config vite.config.web.js",
+		"build:lib": "tsc && vite build --config vite.config.lib.js",
 		"preview": "vite preview"
 	},
 	"keywords": [
