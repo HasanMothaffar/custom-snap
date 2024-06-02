@@ -12,7 +12,7 @@
 		}
 	},
 	"scripts": {
-		"dev": "vite --config vite.config.web.js",
+		"dev": "vite --config vite.config.docs.js",
 		"build:docs": "tsc && vite build --config vite.config.docs.js",
 		"build:lib": "tsc && vite build --config vite.config.lib.js",
 		"preview": "vite preview"

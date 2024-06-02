@@ -1,6 +1,6 @@
 import { EASINGS } from "./easings";
-import { CustomSnapProps, EasingPreset, EventCallback, ScrollDirection } from "./types";
 import "./styles.css";
+import { CustomSnapProps, EasingPreset, EventCallback, ScrollDirection } from "./types";
 
 export class CustomSnap {
 	private sections!: HTMLElement[];
@@ -16,6 +16,8 @@ export class CustomSnap {
 
 	private afterSnap!: EventCallback;
 	private beforeSnap!: EventCallback;
+
+	private scrollEvents = ["wheel", "touchmove", "pointermove"];
 
 	constructor({
 		container,
@@ -137,15 +139,13 @@ export class CustomSnap {
 
 	private disableScroll() {
 		this.scrollLock = true;
-		window.addEventListener("wheel", this.preventDefault, { passive: false });
-		window.addEventListener("touchstart", this.preventDefault, { passive: false });
+		this.scrollEvents.forEach((e) => window.addEventListener(e, this.preventDefault, { passive: false }));
 	}
 
 	private enableScroll() {
 		this.scrollLock = false;
-		window.removeEventListener("wheel", this.preventDefault);
-		window.removeEventListener("touchstart", this.preventDefault);
-		return (document.onkeydown = null);
+		this.scrollEvents.forEach((e) => window.removeEventListener(e, this.preventDefault));
+		// return (document.onkeydown = null);
 	}
 
 	public getScrollDirection(): ScrollDirection {
